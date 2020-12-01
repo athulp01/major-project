@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import threading
 import math
+from queue import Queue
+from pathfinder import PathFinder
 
 
 class Robot:
@@ -28,6 +30,10 @@ class Robot:
     def setVelocity(self, handle, velocity):  # Angular velocity(deg/s)
         err = sim.simxSetJointTargetVelocity(
             self.client, handle, velocity, sim.simx_opmode_blocking)
+
+    def getPos(self):
+        pos, err = sim.simxGetObjectPosition(self.client, self.base, -1, sim.simx_opmode_blocking)
+        return pos
 
     def moveForward(self, velocity):
         self.setVelocity(self.flmotor, velocity)
@@ -94,11 +100,15 @@ class Robot:
 
 
 robot = Robot(19999)
-robot.moveForward(2)
+pathfinder = PathFinder(0,0,0,0)
 img = robot.getImage(2)
-cv.imwrite("test.png",img )
-cv.waitKey()
+path = pathfinder.find(img)
+q = Queue(maxsize=10000)
+[q.put(i) for i in path]
+while not q.empty():
+    point = q.get()
+pathfinder.visualizePath()
+robot.moveForward(4)
 
 while True:
     err, res = sim.simxGetObjectPosition(robot.client, robot.base, -1, sim.simx_opmode_blocking)
-    print(res)
