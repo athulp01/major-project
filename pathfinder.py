@@ -6,18 +6,23 @@ from pathfinding.finder.a_star import AStarFinder
 
 class PathFinder:
     def __init__(self, simWidth, simHeight, simX, simY):
-        self.simWidth = simWidth
-        self.simHeight = simHeight
+        self.simWidth = abs(simWidth)
+        self.simHeight = abs(simHeight)
         self.simX = simX
         self.simY = simY
+        print(self.simWidth, self.simHeight, self.simX, self.simY)
 
-    def find(self, img):
+    def find(self, img, start):
         preproc = self.preprocess(img)
         # 7.34 and 9.04 are actual dimension in the sim env
-        self.createMapping(7.34/self.width, 9.04/self.height)
+        self.createMapping(self.simWidth/self.width, self.simHeight/self.height)
+        newx = (-self.simX + start[0])/(self.simWidth/self.width)
+        newy = (self.simY - start[1])/(self.simHeight/self.height)
+        print(start)
+        print(self.width, self.height, newx, newy)
         grid = Grid(matrix=preproc)
-        start = grid.node(287, 44)
-        end = grid.node(52, 420)
+        start = grid.node(int(newx), int(newy))
+        end = grid.node(190, 150)
         finder = AStarFinder()
         path, _ = finder.find_path(start, end, grid)
         path = path[0::4]
@@ -58,16 +63,21 @@ class PathFinder:
     def preprocess(self, img):
         # flip the image to match the simulator
         img = cv.flip(img, 1)
+        self.imshow(img)
         # crop to the boundary
-        img = img[17:495, 50:475]
+        gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+        _,thresh = cv.threshold(gray,1,255,cv.THRESH_BINARY)
+        contours,hierarchy = cv.findContours(thresh,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
+        cnt = contours[0]
+        x,y,w,h = cv.boundingRect(cnt)
+        self.img = img[y:y+h,x:x+w]
+        #img = img[17:495, 50:475]
         # cv.imwrite("initial.png", img)
-        self.img = img
-        self.height = (len(img))
-        self.width = (len(img[0]))
-        edges = cv.Canny(img, 10, 50)
+        self.height = (len(self.img))
+        self.width = (len(self.img[0]))
+        edges = cv.Canny(self.img, 10, 50)
         edges = (255-edges)
         # cv.imwrite("edges.png", edges)
-        self.img = img
         increased = self.incBoundWidth(edges, 35)
         # cv.imwrite("increased.png", increased)
         return increased
@@ -76,8 +86,8 @@ class PathFinder:
         self.mapping = dict()
         for i in range(self.width):
             for j in range(self.height):
-                # 3.67 and -4.72
-                self.mapping[(i, j)] = (3.67 - i*xStep, -4.72 + j*yStep)
+                self.mapping[(i, j)] = (self.simX + i*xStep, self.simY - j*yStep)
+        print(self.mapping[(195,320)])
 
     def incBoundWidth(self, edges, incWidth):
         # Increase horizontally

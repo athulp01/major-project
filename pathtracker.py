@@ -8,10 +8,10 @@ class PathTracker:
     def __init__(self, path, lookdist, width, robot):
         self.lookdist = lookdist
         self.path = path
-        self.prevLookahead = None
         self.prevLookindex = -0.5
         self.angle = robot.getAngle()
         self.pos = robot.getPos()[0:2]
+        self.prevLookahead = self.pos
         self.pos[0] += 1
         # self.pos = [0,0]
         self.width = width
@@ -20,21 +20,14 @@ class PathTracker:
 
     def track(self):
         while True:
+            print(self.pos)
             lookpoint = self.lookhead(self.pos)
             curv = self.curvature(lookpoint)
-            wheels = self.turn(curv, 3, self.width)
-            print(wheels)
+            wheels = self.turn(curv, 5, self.width)
             self.robot.setLeftVelocity(wheels[0])
             self.robot.setRightVelocity(-wheels[1])
-            # while(lookpoint[0] > pos[0] and lookpoint[1] > pos[1]):
-            #     pos = self.robot.getPos()
-            # self.robot.setLeftVelocity(0)
-            # self.robot.setRightVelocity(0)
             self.pos = self.robot.getPos()[0:2]
             self.angle = self.robot.getAngle()
-            [a_i - b_i for a_i, b_i in zip(self.pos,list(self.path[-1]))]
-            # if (np.linalg.norm([a_i - b_i for a_i, b_i in zip(self.pos,list(self.path[-1]))]) < 2):
-            #     break
     
     def turn(self,curv, vel, trackwidth):
         return  [vel*(2+curv*trackwidth)/2, vel*(2-curv*trackwidth)/2]
@@ -59,9 +52,6 @@ class PathTracker:
         c = math.tan(self.angle)*self.pos[0] - self.pos[1]
         x = abs(a*lookapoint[0] + lookapoint[1] + c) / math.sqrt(a**2 + 1)
         return side * (2*x/(self.lookdist**2))
-
-    def distance(self, point1, point2):
-        return np.linalg.norm(point1 - point2)
 
     def lookhead(self, robot_pos):
         for i in range(math.ceil(self.prevLookindex), len(self.path)-1):
