@@ -1,12 +1,14 @@
 import math
+import matplotlib.pyplot as plt
 from robot import Robot
 import numpy as np
 from numpy.core.numeric import NaN
 
 
 class PathTracker:
-    def __init__(self, path, lookdist, width, robot):
+    def __init__(self, path, lookdist, width, robot, warehouse):
         self.lookdist = lookdist
+        self.warehouse = warehouse
         self.path = path
         self.prevLookindex = -0.5
         self.angle = robot.getAngle()
@@ -15,15 +17,17 @@ class PathTracker:
         self.pos[0] += 1
         # self.pos = [0,0]
         self.width = width
-        self.dt = 0.005
         self.robot = robot
 
     def track(self):
         while True:
-            print(self.pos)
+            if (self.pos[0]-self.path[-1][0])**2 + (self.pos[1]-self.path[-1][1])**2 < 2:
+                self.robot.setLeftVelocity(0)
+                self.robot.setRightVelocity(0)
+                break
             lookpoint = self.lookhead(self.pos)
             curv = self.curvature(lookpoint)
-            wheels = self.turn(curv, 5, self.width)
+            wheels = self.turn(curv, 6, self.width)
             self.robot.setLeftVelocity(wheels[0])
             self.robot.setRightVelocity(-wheels[1])
             self.pos = self.robot.getPos()[0:2]

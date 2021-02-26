@@ -5,34 +5,24 @@ from pathfinding.finder.a_star import AStarFinder
 
 
 class PathFinder:
-    def __init__(self, simWidth, simHeight, simX, simY):
-        self.simWidth = abs(simWidth)
-        self.simHeight = abs(simHeight)
-        self.simX = simX
-        self.simY = simY
-        print(self.simWidth, self.simHeight, self.simX, self.simY)
+    def __init__(self, warehouse):
+        self.warehouse = warehouse
 
-    def find(self, img, start):
-        preproc = self.preprocess(img)
+    def find(self, start, end):
+        self.img = self.warehouse.getImage()
+        preproc = self.preprocess(self.img)
         # 7.34 and 9.04 are actual dimension in the sim env
-        self.createMapping(self.simWidth/self.width, self.simHeight/self.height)
-        newx = (-self.simX + start[0])/(self.simWidth/self.width)
-        newy = (self.simY - start[1])/(self.simHeight/self.height)
-        print(start)
-        print(self.width, self.height, newx, newy)
+        (newx, newy) = self.warehouse.warehouse_to_img(start[0], start[1]);
         grid = Grid(matrix=preproc)
         start = grid.node(int(newx), int(newy))
-        end = grid.node(190, 150)
+        end = grid.node(*end)
         finder = AStarFinder()
         path, _ = finder.find_path(start, end, grid)
-        path = path[0::4]
         self.path = [[p[0], p[1]] for p in path]
-        path = self.smooth(10, 0.4, 50)
+        self.path = self.smooth(100, 0.9, 170)
         actualPath = []
         for point in (path):
-            x = self.mapping[(int(point[0]), int(point[1]))][0]
-            y = self.mapping[(int(point[0]), int(point[1]))][1]
-            actualPath.append((x, y))
+            actualPath.append(self.warehouse.img_to_warehouse(*point))
         return actualPath
 
     def imshow(self, image):
@@ -43,7 +33,6 @@ class PathFinder:
         img = self.img
         for point in self.path:
             img[int(point[1]), int(point[0])] = 0
-        # cv.imwrite("path.png", img)
         self.imshow(img)
 
     def smooth(self, amount, smoothness, tolerance):
@@ -61,33 +50,12 @@ class PathFinder:
         return newpath
 
     def preprocess(self, img):
-        # flip the image to match the simulator
-        img = cv.flip(img, 1)
-        self.imshow(img)
-        # crop to the boundary
-        gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
-        _,thresh = cv.threshold(gray,1,255,cv.THRESH_BINARY)
-        contours,hierarchy = cv.findContours(thresh,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
-        cnt = contours[0]
-        x,y,w,h = cv.boundingRect(cnt)
-        self.img = img[y:y+h,x:x+w]
-        #img = img[17:495, 50:475]
-        # cv.imwrite("initial.png", img)
-        self.height = (len(self.img))
-        self.width = (len(self.img[0]))
-        edges = cv.Canny(self.img, 10, 50)
+        self.height = (len(img))
+        self.width = (len(img[0]))
+        edges = cv.Canny(img, 10, 50)
         edges = (255-edges)
-        # cv.imwrite("edges.png", edges)
         increased = self.incBoundWidth(edges, 35)
-        # cv.imwrite("increased.png", increased)
         return increased
-
-    def createMapping(self, xStep, yStep):
-        self.mapping = dict()
-        for i in range(self.width):
-            for j in range(self.height):
-                self.mapping[(i, j)] = (self.simX + i*xStep, self.simY - j*yStep)
-        print(self.mapping[(195,320)])
 
     def incBoundWidth(self, edges, incWidth):
         # Increase horizontally
