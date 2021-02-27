@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from robot import Robot
 import numpy as np
 from numpy.core.numeric import NaN
+import cv2
 
 
 class PathTracker:
@@ -18,6 +19,7 @@ class PathTracker:
         # self.pos = [0,0]
         self.width = width
         self.robot = robot
+        self.velocity = 7
 
     def track(self):
         while True:
@@ -27,14 +29,14 @@ class PathTracker:
                 break
             lookpoint = self.lookhead(self.pos)
             curv = self.curvature(lookpoint)
-            wheels = self.turn(curv, 6, self.width)
+            wheels = self.turn(curv, self.width)
             self.robot.setLeftVelocity(wheels[0])
             self.robot.setRightVelocity(-wheels[1])
             self.pos = self.robot.getPos()[0:2]
             self.angle = self.robot.getAngle()
     
-    def turn(self,curv, vel, trackwidth):
-        return  [vel*(2+curv*trackwidth)/2, vel*(2-curv*trackwidth)/2]
+    def turn(self,curv,trackwidth):
+        return  [self.velocity*(2+curv*trackwidth)/2, self.velocity*(2-curv*trackwidth)/2]
 
     def curve(self, point, prev, after):
         x1, y1 = point[0], point[1]
@@ -52,8 +54,8 @@ class PathTracker:
     def curvature(self, lookapoint):
         side = np.sign(math.sin(self.angle)*(lookapoint[0]-self.pos[0]) - math.cos(
             self.angle)*(lookapoint[1]-self.pos[1]))
-        a = -math.tan(self.angle)
-        c = math.tan(self.angle)*self.pos[0] - self.pos[1]
+        a = -math.tan(self.angle + 0.0000001)
+        c = math.tan(self.angle + 0.0000001)*self.pos[0] - self.pos[1]
         x = abs(a*lookapoint[0] + lookapoint[1] + c) / math.sqrt(a**2 + 1)
         return side * (2*x/(self.lookdist**2))
 
@@ -84,6 +86,3 @@ class PathTracker:
                     return self.prevLookahead
         return self.prevLookahead
 
-# tracker = PathTracker([[0,0], [1,1]], 1, 0.001, None)
-# print(tracker.lookhead([0,0]))
-# print(tracker.curvature([0.707, 0.707]))

@@ -27,11 +27,12 @@ class Robot:
 
     def setVelocity(self, handle, velocity):  # Angular velocity(deg/s)
         err = sim.simxSetJointTargetVelocity(
-            self.client, handle, velocity, sim.simx_opmode_blocking)
+            self.client, handle, velocity, sim.simx_opmode_oneshot)
 
     def getPos(self):
         err, pos  = sim.simxGetObjectPosition(
             self.client, self.base, -1, sim.simx_opmode_blocking)
+        assert err == 0
         return pos
 
     def setLeftVelocity(self, velocity):
