@@ -1,9 +1,6 @@
 import math
 import matplotlib.pyplot as plt
-from robot import Robot
 import numpy as np
-from numpy.core.numeric import NaN
-import cv2
 
 
 class PathTracker:
@@ -22,6 +19,7 @@ class PathTracker:
         self.velocity = 7
 
     def track(self):
+        print("start tracking")
         while True:
             if (self.pos[0]-self.path[-1][0])**2 + (self.pos[1]-self.path[-1][1])**2 < 2:
                 self.robot.setLeftVelocity(0)
@@ -34,6 +32,7 @@ class PathTracker:
             self.robot.setRightVelocity(-wheels[1])
             self.pos = self.robot.getPos()[0:2]
             self.angle = self.robot.getAngle()
+        self.robot.makeFree()
     
     def turn(self,curv,trackwidth):
         return  [self.velocity*(2+curv*trackwidth)/2, self.velocity*(2-curv*trackwidth)/2]

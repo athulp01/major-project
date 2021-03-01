@@ -1,11 +1,5 @@
 import sim
-import cv2 as cv
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import math
-from queue import Queue
-from pathfinder import PathFinder
 
 
 class Robot:
@@ -24,6 +18,13 @@ class Robot:
         err, self.front = sim.simxGetObjectHandle(
             self.client, "front#"+num, sim.simx_opmode_blocking)
         self.plot = None
+        self.busy = False
+
+    def makeBusy(self):
+        self.busy = True
+
+    def makeFree(self):
+        self.busy = False
 
     def setVelocity(self, handle, velocity):  # Angular velocity(deg/s)
         err = sim.simxSetJointTargetVelocity(
