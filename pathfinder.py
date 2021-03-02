@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.finder.dijkstra import DijkstraFinder
+import sim
 
 
 class PathFinder:

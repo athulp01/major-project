@@ -7,6 +7,9 @@ from warehouse import Warehouse
 from robot import Robot
 import sim
 
+from flask import Flask,request, abort
+import flask
+
 
 class Executer:
     def __init__(self, threads):
@@ -14,11 +17,32 @@ class Executer:
         self.queue = queue.Queue()
         self.warehouse = Warehouse(19999)
         self.robots = []
+        self.app = Flask("Warehouse")
         self.loop = threading.Thread(target=self._dispatcher) 
         self.freeRobots = threading.Semaphore(value=0)
         self.mutex = threading.Lock()
+        self.app.add_url_rule('/addTask', 'addTaskHTTP', self.addTaskHTTP, methods=['POST'])
 
-    def listen(self):
+    def startHTTPServer(self):
+        self.app.run()
+
+    def addTaskHTTP(self):
+        if not request.json or not 'position' in request.json:
+            abort(400)
+        status_code = flask.Response(status=201)
+        print(request.json)
+        self.addTask((request.json['position']['x'], request.json['position']['y']))
+        return status_code
+
+    def addRobotHTTP(self):
+        if not request.json or not 'robot' in request.json:
+            abort(400)
+        self.addRobot(request.json['robot']['suffix'])
+        status_code = flask.Response(status=201)
+        print(request.json)
+        return status_code
+
+    def startListening(self):
         self.loop.start()
 
     def _dispatcher(self):
