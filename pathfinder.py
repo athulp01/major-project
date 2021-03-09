@@ -1,10 +1,8 @@
-from time import time
 import cv2 as cv
 from matplotlib import pyplot as plt
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.finder.dijkstra import DijkstraFinder
-import sim
 
 
 class PathFinder:
@@ -13,6 +11,7 @@ class PathFinder:
 
     def find(self, start, end):
         self.img = self.warehouse.getImage()
+        self.imshow(self.img)
         preproc = self.preprocess(self.img)
         self.imshow(preproc)
         # 7.34 and 9.04 are actual dimension in the sim env
@@ -21,7 +20,7 @@ class PathFinder:
         start = grid.node(int(newx), int(newy))
         cv.circle(self.img, end, 10, (0,255,0), 3)
         end = grid.node(*end)
-        finder = DijkstraFinder()
+        finder = AStarFinder()
         cv.circle(self.img, (newx, newy), 10, (255,0,0), 3)
         path, _ = finder.find_path(start, end, grid)
         if len(path) == 0:
@@ -36,13 +35,16 @@ class PathFinder:
         return actualPath
 
     def imshow(self, image):
-        plt.imsave("image" + str(time()) +".png", image)
+        print("imshow disabled")
+        ##plt.imshow(image)
+        #plt.show()
 
     def visualizePath(self):
         img = self.img
         for point in self.path:
             img[int(point[1]), int(point[0])] = 0
         self.imshow(img)
+        return img
 
     def smooth(self, amount, smoothness, tolerance):
         newpath = self.path.copy()

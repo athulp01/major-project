@@ -28,6 +28,8 @@ class Warehouse:
         )
         self.width = abs(self.toplpos[0] - self.bottomrpos[0])
         self.height = abs(self.bottomrpos[1] - self.toplpos[1])
+        self.imwidth = None
+        self.imheight = None
 
     def getImage(self):
         err, resol, image = sim.simxGetVisionSensorImage(
@@ -50,6 +52,8 @@ class Warehouse:
         return img
 
     def warehouse_to_img(self, x, y):
+        if not self.imwidth:
+            self.getImage()
         imgx = (-self.toplpos[0] + x) / (self.width / self.imwidth)
         imgy = (self.toplpos[1] - y) / (self.height / self.imheight)
         assert imgx < self.imwidth
@@ -57,6 +61,8 @@ class Warehouse:
         return (int(imgx), int(imgy))
 
     def img_to_warehouse(self, x, y):
+        if not self.imwidth:
+            self.getImage()
         warex = self.toplpos[0] + x * (self.width / self.imwidth)
         warey = self.toplpos[1] - y * (self.height / self.imheight)
         return (warex, warey)
