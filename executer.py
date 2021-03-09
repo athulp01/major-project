@@ -24,7 +24,7 @@ class Executer:
         self.queue = queue.Queue()
         self.warehouse = Warehouse(19999)
         self.robots = []
-        self.paths = []
+        self.tasks = [{}]
         self.app = Flask("Warehouse")
         self.socketio = SocketIO(self.app)
         self.socketio.on_event('addTask', self.handleAddTask)
@@ -40,11 +40,6 @@ class Executer:
     def sendFile(self, path):
         return flask.send_from_directory('./', path)
 
-    def sendPathHTTP(self):
-        _, img = cv2.imencode(".jpg", self.paths[0])
-        bytes = img.tobytes()
-        send_file(bytes, mimetype="image.jpeg")
-
     def sendPosHTTP(self):
         pos = self.warehouse.warehouse_to_img(self.robots[0].getPos()[0], self.robots[0].getPos()[1])
         data = {'x':pos[0], 'y':pos[1]}
@@ -59,8 +54,8 @@ class Executer:
         return status_code
 
     def handleAddTask(self, data):
-        if "position" in data:
-            self.addTask((data["position"]["x"], data["position"]["y"]))
+        points = [(data["pickup"]["x"], data["pickup"]["y"]), (data["drop"]["x"], data["drop"]["y"])]
+        self.addTask(points)
 
     def handleAddRobot(self):
         if not request.json or not "robot" in request.json:
@@ -75,28 +70,28 @@ class Executer:
 
     def _dispatcher(self):
         while True:
-            stop = self.queue.get()
-            if stop == None:
+            points = self.queue.get()
+            if points == None:
                 break
-            print("Preparing to dispatch", stop)
+            print("Preparing to dispatch", points)
             self.mutex.acquire()
             self.freeRobots.acquire()
-            print("Dispatching", stop)
-            self._assignTask(stop)
+            print("Dispatching", points)
+            self._assignTask(*points)
 
     def addRobot(self, name):
         self.robots.append(Robot(self.warehouse.client, name))
-        self.paths.append(None)
         self.freeRobots.release()
 
     def addTask(self, stop):
         self.queue.put(stop)
+        self.tasks.append(stop)
 
     def release(self, num):
         print("Releasing")
         self.freeRobots.release()
 
-    def _assignTask(self, stop):
+    def _assignTask(self, pickup, drop):
         for i in range(len(self.robots)):
             if not self.robots[i].busy:
                 self.robots[i].makeBusy()
@@ -107,11 +102,13 @@ class Executer:
                     -1,
                     sim.simx_opmode_blocking,
                 )
-                path = finder.find(pos, stop)
-                _, img = cv2.imencode(".jpg", finder.visualizePath())
-                img_bytes = img.tobytes()
-                self.socketio.emit('path', base64.b64encode(img_bytes))
-                tracker = PathTracker(path, 2.8, 5, self.robots[i], self.warehouse)
+                start = self.warehouse.warehouse_to_img(pos[0], pos[1])
+                pickupPath = finder.find(start, pickup)
+                dropPath = finder.find(pickup, drop)
+                #_, img = cv2.imencode(".jpg", finder.visualizePath())
+                #img_bytes = img.tobytes()
+                #self.socketio.emit('path', base64.b64encode(img_bytes))
+                tracker = PathTracker(pickupPath, dropPath, 2.8, 5, self.robots[i], self.warehouse)
                 self.pool.apply_async(tracker.track, callback=self.release)
                 self.mutex.release()
                 return

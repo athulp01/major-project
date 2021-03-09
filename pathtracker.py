@@ -1,31 +1,51 @@
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import pathfinder
 
 
 class PathTracker:
-    def __init__(self, path, lookdist, width, robot, warehouse):
+    def __init__(self, pickupPath, dropPath, lookdist, width, robot, warehouse):
         self.lookdist = lookdist
         self.warehouse = warehouse
-        self.path = path
-        self.prevLookindex = -0.5
-        self.angle = robot.getAngle()
-        self.pos = robot.getPos()[0:2]
-        self.prevLookahead = self.pos
-        self.pos[0] += 1
+        self.pickupPath = pickupPath
+        self.dropPath = dropPath
         # self.pos = [0,0]
         self.width = width
         self.robot = robot
         self.velocity = 7
+        self.reset()
+
+    def reset(self):
+        self.prevLookindex = -0.5
+        self.angle = self.robot.getAngle()
+        self.pos = self.robot.getPos()[0:2]
+        self.pos[0] += 1
+        self.prevLookahead = self.pos
 
     def track(self):
         print("start tracking")
         while True:
-            if (self.pos[0]-self.path[-1][0])**2 + (self.pos[1]-self.path[-1][1])**2 < 2:
+            if (self.pos[0]-self.pickupPath[-1][0])**2 + (self.pos[1]-self.pickupPath[-1][1])**2 < 2:
                 self.robot.setLeftVelocity(0)
                 self.robot.setRightVelocity(0)
                 break
-            lookpoint = self.lookhead(self.pos)
+            lookpoint = self.lookhead(self.pos, self.pickupPath)
+            curv = self.curvature(lookpoint)
+            wheels = self.turn(curv, self.width)
+            self.robot.setLeftVelocity(wheels[0])
+            self.robot.setRightVelocity(-wheels[1])
+            self.pos = self.robot.getPos()[0:2]
+            self.angle = self.robot.getAngle()
+
+        self.reset()
+
+        while True:
+            if (self.pos[0]-self.dropPath[-1][0])**2 + (self.pos[1]-self.dropPath[-1][1])**2 < 2:
+                self.robot.setLeftVelocity(0)
+                self.robot.setRightVelocity(0)
+                break
+            lookpoint = self.lookhead(self.pos, self.dropPath)
             curv = self.curvature(lookpoint)
             wheels = self.turn(curv, self.width)
             self.robot.setLeftVelocity(wheels[0])
@@ -58,10 +78,10 @@ class PathTracker:
         x = abs(a*lookapoint[0] + lookapoint[1] + c) / math.sqrt(a**2 + 1)
         return side * (2*x/(self.lookdist**2))
 
-    def lookhead(self, robot_pos):
-        for i in range(math.ceil(self.prevLookindex), len(self.path)-1):
-            line_start = self.path[i]
-            line_end = self.path[i+1]
+    def lookhead(self, robot_pos, path):
+        for i in range(math.ceil(self.prevLookindex), len(path)-1):
+            line_start = path[i]
+            line_end = path[i+1]
             d = np.subtract(line_end, line_start)
             f = np.subtract(line_start, robot_pos)
 

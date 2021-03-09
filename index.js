@@ -21,6 +21,21 @@ function showPath(data) {
     document.body.appendChild(image);
 }
 
+function submitPoint() {
+    var data = {
+        "pickup":{
+            "x": parseInt(document.getElementById("pickx").value),
+            "y": parseInt(document.getElementById("picky").value),
+        },
+        "drop":{
+            "x": parseInt(document.getElementById("dropx").value),
+            "y": parseInt(document.getElementById("dropy").value),
+        }
+    };
+    socket.emit("addTask", data)
+
+}
+
 function updatePoint(event) {
     console.log(canvas)
     const rect = canvas.getBoundingClientRect()
@@ -53,7 +68,6 @@ function updatePoint(event) {
         ctx.fillText("Drop Point", data["position"]["x"] + 10, data["position"]["y"] + 10);
     }
         console.log(data)
-    //socket.emit("addTask", data)
 }
 
 function updatePos(){

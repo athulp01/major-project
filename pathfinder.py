@@ -10,19 +10,19 @@ class PathFinder:
         self.warehouse = warehouse
 
     def find(self, start, end):
+        print(start, end)
         self.img = self.warehouse.getImage()
         self.imshow(self.img)
         preproc = self.preprocess(self.img)
         self.imshow(preproc)
         # 7.34 and 9.04 are actual dimension in the sim env
-        (newx, newy) = self.warehouse.warehouse_to_img(start[0], start[1])
         grid = Grid(matrix=preproc)
-        start = grid.node(int(newx), int(newy))
+        cv.circle(self.img, start, 10, (255,0,0), 3)
+        startGrid = grid.node(*start)
         cv.circle(self.img, end, 10, (0,255,0), 3)
-        end = grid.node(*end)
+        endGrid = grid.node(*end)
         finder = AStarFinder()
-        cv.circle(self.img, (newx, newy), 10, (255,0,0), 3)
-        path, _ = finder.find_path(start, end, grid)
+        path, _ = finder.find_path(startGrid, endGrid, grid)
         if len(path) == 0:
             self.imshow(self.img)
             raise IOError()
