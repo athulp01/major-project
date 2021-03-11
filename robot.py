@@ -17,14 +17,6 @@ class Robot:
             self.client, "body#"+num, sim.simx_opmode_blocking)
         err, self.front = sim.simxGetObjectHandle(
             self.client, "front#"+num, sim.simx_opmode_blocking)
-        self.plot = None
-        self.busy = False
-
-    def makeBusy(self):
-        self.busy = True
-
-    def makeFree(self):
-        self.busy = False
 
     def setVelocity(self, handle, velocity):  # Angular velocity(deg/s)
         err = sim.simxSetJointTargetVelocity(

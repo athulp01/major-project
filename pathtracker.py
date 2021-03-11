@@ -1,18 +1,20 @@
 import math
+from robot import Robot
 import matplotlib.pyplot as plt
 import numpy as np
-import pathfinder
+import sim
 
 
 class PathTracker:
-    def __init__(self, pickupPath, dropPath, lookdist, width, robot, warehouse):
+    def __init__(self, pickupPath, dropPath, lookdist, width, robot):
         self.lookdist = lookdist
-        self.warehouse = warehouse
         self.pickupPath = pickupPath
         self.dropPath = dropPath
         # self.pos = [0,0]
         self.width = width
-        self.robot = robot
+        client = sim.simxStart("127.0.0.1", -2, True, True, 5000, 5)
+        print(client)
+        self.robot = Robot(client, robot)
         self.velocity = 7
         self.reset()
 
@@ -44,6 +46,7 @@ class PathTracker:
             if (self.pos[0]-self.dropPath[-1][0])**2 + (self.pos[1]-self.dropPath[-1][1])**2 < 2:
                 self.robot.setLeftVelocity(0)
                 self.robot.setRightVelocity(0)
+                print("vel0")
                 break
             lookpoint = self.lookhead(self.pos, self.dropPath)
             curv = self.curvature(lookpoint)
@@ -52,7 +55,10 @@ class PathTracker:
             self.robot.setRightVelocity(-wheels[1])
             self.pos = self.robot.getPos()[0:2]
             self.angle = self.robot.getAngle()
-        self.robot.makeFree()
+        self.robot.setLeftVelocity(0)
+        self.robot.setRightVelocity(0)
+        sim.simxFinish(self.robot.client)
+        print("Over")
     
     def turn(self,curv,trackwidth):
         return  [self.velocity*(2+curv*trackwidth)/2, self.velocity*(2-curv*trackwidth)/2]

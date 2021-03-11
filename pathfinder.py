@@ -6,25 +6,20 @@ from pathfinding.finder.dijkstra import DijkstraFinder
 
 
 class PathFinder:
-    def __init__(self, warehouse):
+    def __init__(self, warehouse, image):
         self.warehouse = warehouse
+        self.img = image
 
     def find(self, start, end):
         print(start, end)
-        self.img = self.warehouse.getImage()
-        self.imshow(self.img)
         preproc = self.preprocess(self.img)
-        self.imshow(preproc)
-        # 7.34 and 9.04 are actual dimension in the sim env
         grid = Grid(matrix=preproc)
-        cv.circle(self.img, start, 10, (255,0,0), 3)
         startGrid = grid.node(*start)
-        cv.circle(self.img, end, 10, (0,255,0), 3)
         endGrid = grid.node(*end)
         finder = AStarFinder()
         path, _ = finder.find_path(startGrid, endGrid, grid)
         if len(path) == 0:
-            self.imshow(self.img)
+            plt.imsave("test.png", self.img)
             raise IOError()
         path = path[0::4]
         self.path = [[p[0], p[1]] for p in path]

@@ -7,7 +7,8 @@ class Warehouse:
     def __init__(self, port):
         sim.simxFinish(-1)
         self.port = port
-        self.client = sim.simxStart("127.0.0.1", port, True, True, 5000, 5)
+        self.client = sim.simxStart("127.0.0.1", -1, True, True, 5000, 5)
+        print(self.client)
 
         _, topleft = sim.simxGetObjectHandle(
             self.client, "topleft", sim.simx_opmode_blocking
@@ -30,6 +31,18 @@ class Warehouse:
         self.height = abs(self.bottomrpos[1] - self.toplpos[1])
         self.imwidth = None
         self.imheight = None
+
+    def close(self):
+        sim.simxFinish(self.client)
+
+    def getRoboPos(self, robo):
+        err, base = sim.simxGetObjectHandle(
+            self.client, "body#"+robo, sim.simx_opmode_blocking)
+        err, pos  = sim.simxGetObjectPosition(
+            self.client, base, -1, sim.simx_opmode_blocking)
+        assert err == 0
+        return pos
+
 
     def getImage(self):
         err, resol, image = sim.simxGetVisionSensorImage(
