@@ -5,9 +5,10 @@ import pathfinder
 
 
 class PathTracker:
-    def __init__(self, pickupPath, dropPath, lookdist, width, robot, warehouse):
+    def __init__(self, pickupPath, dropPath, lookdist, width, robot, warehouse, socketio):
         self.lookdist = lookdist
         self.warehouse = warehouse
+        self.socketio = socketio
         self.pickupPath = pickupPath
         self.dropPath = dropPath
         # self.pos = [0,0]
@@ -37,6 +38,7 @@ class PathTracker:
             self.robot.setRightVelocity(-wheels[1])
             self.pos = self.robot.getPos()[0:2]
             self.angle = self.robot.getAngle()
+            self.socketio.sleep(0)
 
         self.reset()
 
@@ -52,7 +54,11 @@ class PathTracker:
             self.robot.setRightVelocity(-wheels[1])
             self.pos = self.robot.getPos()[0:2]
             self.angle = self.robot.getAngle()
+            self.socketio.sleep(0)
         self.robot.makeFree()
+        self.socketio.emit(
+            "updateStatus", {"uuid": self.robot.task["uuid"], "status": "Finished"}
+        )
     
     def turn(self,curv,trackwidth):
         return  [self.velocity*(2+curv*trackwidth)/2, self.velocity*(2-curv*trackwidth)/2]

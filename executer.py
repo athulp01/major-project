@@ -23,7 +23,7 @@ class Executer:
         self.robots = []
         self.tasks = []
         self.app = Flask("Warehouse")
-        self.socketio = SocketIO(self.app,logger=True, engineio_logger=True)
+        self.socketio = SocketIO(self.app,logger=True, engineio_logger=True, pingTimeout=60, pingInterval=60)
         self.socketio.on_event("addTask", self.handleAddTask)
         self.socketio.on_event("addRobot", self.handleAddRobot)
         self.loop = threading.Thread(target=self._dispatcher)
@@ -106,12 +106,13 @@ class Executer:
         )
         for i in range(len(self.robots)):
             if not self.robots[i].busy:
-                self.robots[i].makeBusy()
+                self.robots[i].makeBusy(task)
                 self.socketio.emit("test", "test")
+                task["status"] = "Computing Path"
                 self.socketio.emit(
                     "updateStatus", {"uuid": task["uuid"], "status": "Computing Path"}
                 )
-                self.socketio.sleep(2)
+                self.socketio.sleep(0)
                 finder = PathFinder(self.warehouse)
                 _, pos = sim.simxGetObjectPosition(
                     self.warehouse.client,
@@ -121,19 +122,20 @@ class Executer:
                 )
                 start = self.warehouse.warehouse_to_img(pos[0], pos[1])
                 pickupPath = finder.find(start, pickup)
-                self.socketio.sleep(2)
+                self.socketio.sleep(0)
                 dropPath = finder.find(pickup, drop)
                 # _, img = cv2.imencode(".jpg", finder.visualizePath())
                 # img_bytes = img.tobytes()
                 # self.socketio.emit('path', base64.b64encode(img_bytes))
+                task["status"] = "In Transit"
                 self.socketio.emit(
                     "updateStatus", {"uuid": task["uuid"], "status": "In Transit"}
                 )
                 self.socketio.sleep(2)
                 tracker = PathTracker(
-                    pickupPath, dropPath, 2.8, 5, self.robots[i], self.warehouse
+                    pickupPath, dropPath, 2.8, 5, self.robots[i], self.warehouse, self.socketio
                 )
-                #self.pool.apply_async(tracker.track, callback=self.release)
+                self.pool.apply_async(tracker.track, callback=self.release)
                 self.mutex.release()
                 return
         print("No free robots")

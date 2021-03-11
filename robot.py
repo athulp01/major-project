@@ -20,11 +20,13 @@ class Robot:
         self.plot = None
         self.busy = False
 
-    def makeBusy(self):
+    def makeBusy(self, task):
         self.busy = True
+        self.task = task
 
     def makeFree(self):
         self.busy = False
+        self.task["status"] = "Finished"
 
     def setVelocity(self, handle, velocity):  # Angular velocity(deg/s)
         err = sim.simxSetJointTargetVelocity(
