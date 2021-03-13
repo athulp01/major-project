@@ -24,15 +24,14 @@ class PathFinder:
         finder = AStarFinder()
         path, _ = finder.find_path(startGrid, endGrid, grid)
         if len(path) == 0:
-            self.imshow(self.img)
-            raise IOError()
+            return []
         path = path[0::4]
         self.path = [[p[0], p[1]] for p in path]
         self.path = self.smooth(30, 0.6, 40)
         actualPath = []
         for point in path:
             actualPath.append(self.warehouse.img_to_warehouse(*point))
-        return actualPath
+        return (self.path, actualPath)
 
     def imshow(self, image):
         print("imshow disabled")

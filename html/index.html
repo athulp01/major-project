@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<title>Warehouse Controller</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel=stylesheet href="css/bulma.min.css" />
+	<link rel="shortcut icon" href="images/icon.png" type="image/x-icon"/>
+	<link rel=stylesheet href="css/main.css" />
+</head>
+
+<body>
+	<section class="hero is-dark">
+		<div class="hero-body">
+			<div class="container has-text-centered">
+				<p class="title is-1">
+					Warehouse Controller
+				</p>
+			</div>
+		</div>
+	</section>
+
+	<div class="container">
+		<div class="columns">
+
+			<div class="column">
+				<div class="block box">
+					<p class="title is-3">Add Task</p>
+					<div class="field is-horizontal">
+						<div class="field-label is-normal">
+							<label class="label">Pickup Point</label>
+						</div>
+						<div class="field-body">
+							<div class="field">
+								<p class="control">
+									<input class="input" id="pickx" placeholder="X" type="number">
+								</p>
+							</div>
+							<div class="field">
+								<p class="control">
+									<input id="picky" placeholder="Y" class="input" type="number">
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="column">
+						<div class="field is-horizontal">
+							<div class="field-label is-normal">
+								<label class="label">Drop Point</label>
+							</div>
+							<div class="field-body">
+								<div class="field">
+									<p class="control">
+										<input id="dropx" class="input" placeholder="X" type="number">
+									</p>
+								</div>
+								<div class="field">
+									<p class="control">
+										<input id="dropy" placeholder="Y" class="input" type="number">
+									</p>
+								</div>
+							</div>
+						</div>
+
+
+						<div class="field is-horizontal">
+							<div class="field-label is-normal">
+								<label class="label">Package ID</label>
+							</div>
+							<div class="field-body">
+								<div class="field">
+									<p class="control">
+										<input id="pkgid" class="input" type="text" placeholder="PKG-12345">
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="field is-grouped">
+						<div class="field-label is-normal">
+						</div>
+						<div class="field-body is-centered">
+							<div class="control">
+								<button class="button is-link" onclick="addTask()">Submit</button>
+							</div>
+							<div class="control">
+								<button class="button is-link is-light" onclick="cancelCurPoints()">Cancel</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="box">
+					<p class="title is-3">Status</p>
+					<table id="tasks" class="table">
+						<thead>
+							<tr>
+								<th>Pickup Point</th>
+								<th>Drop Point</th>
+								<th>Package ID</th>
+								<th>Status</th>
+								<th>Assigned Robot</th>
+							</tr>
+						</thead>
+					</table>
+				</div>
+			</div>
+			<div class="column">
+				<p class="title is-3 is-spaced">Map</p>
+				<img src="images/base.png" style="display: none;" id="base">
+				<canvas id="img" width="473" height="912" style="border:1px solid #000000;"></canvas>
+			</div>
+
+		</div>
+
+
+		<script src="js/jquery-3.6.0.min.js"></script>
+		<script src="js/socket.io.min.js"></script>
+		<script src="js/axios.min.js"></script>
+		<script src="js/task.js"></script>
+		<script src="js/index.js"></script>
+		<script src="js/robot.js"></script>
+
+</body>
+
+</html>

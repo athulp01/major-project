@@ -1,9 +1,10 @@
-from multiprocessing.pool import ThreadPool
+from concurrent.futures import ThreadPoolExecutor
 import queue
 import threading
-from flask.helpers import send_file
+import json
 
 from flask.json import jsonify
+from werkzeug import debug
 from pathfinder import PathFinder
 from pathtracker import PathTracker
 from warehouse import Warehouse
@@ -17,13 +18,13 @@ import flask
 
 class Executer:
     def __init__(self, threads):
-        self.pool = ThreadPool(processes=threads)
+        self.pool = ThreadPoolExecutor(threads)
         self.queue = queue.Queue()
         self.warehouse = Warehouse(19999)
         self.robots = []
         self.tasks = []
         self.app = Flask("Warehouse")
-        self.socketio = SocketIO(self.app,logger=True, engineio_logger=True, pingTimeout=60, pingInterval=60)
+        self.socketio = SocketIO(self.app, pingTimeout=60, pingInterval=60)
         self.socketio.on_event("addTask", self.handleAddTask)
         self.socketio.on_event("addRobot", self.handleAddRobot)
         self.loop = threading.Thread(target=self._dispatcher)
@@ -32,7 +33,11 @@ class Executer:
         self.app.add_url_rule(
             "/<path:path>", "sendFile", self.sendFile, methods=["GET"]
         )
+        self.app.add_url_rule(
+            "/", "sendHomePage", self.sendHomePage, methods=["GET"]
+        )
         self.app.add_url_rule("/getTasks", "sendTasksHTTP", self.sendTasksHTTP)
+        self.app.add_url_rule("/getRobotsPos", "sendRobotsPos", self.sendRobotsPos)
 
     def handle_message(self, data):
         print("received message: " + data)
@@ -43,18 +48,22 @@ class Executer:
     def sendFile(self, path):
         return flask.send_from_directory("./", path)
 
-    def sendPosHTTP(self):
-        pos = self.warehouse.warehouse_to_img(
-            self.robots[0].getPos()[0], self.robots[0].getPos()[1]
-        )
-        data = {"x": pos[0], "y": pos[1]}
-        return jsonify(data)
+    def sendHomePage(self):
+        return flask.send_file("./html/index.html")
+
+    def sendRobotsPos(self):
+        pos = []
+        for robot in self.robots:
+            curPos = robot.getPos()
+            mappedPos = self.warehouse.warehouse_to_img(curPos[0], curPos[1])
+            pos.append({"id": robot.id, "x": mappedPos[0], "y": mappedPos[1]})
+        return jsonify(pos)
 
     def sendTasksHTTP(self):
         return jsonify(self.tasks)
 
     def startHTTPServer(self):
-        self.socketio.run(self.app)
+        self.socketio.run(self.app, host="0.0.0.0")
 
     def stopHTTP(self):
         self.finishAll()
@@ -62,6 +71,7 @@ class Executer:
         return status_code
 
     def handleAddTask(self, data):
+        data = json.loads(data)
         self.addTask(data)
         self.tasks.append(data)
 
@@ -74,11 +84,11 @@ class Executer:
         return status_code
 
     def startListening(self):
-        #self.loop.start()
-        self.socketio.start_background_task(self._dispatcher)
+        self.loop.start()
 
     def _dispatcher(self):
         while True:
+            print("waiting")
             points = self.queue.get()
             if points == None:
                 break
@@ -86,7 +96,7 @@ class Executer:
             self.mutex.acquire()
             self.freeRobots.acquire()
             print("Dispatching", points)
-            self._assignTask(points)
+            self.pool.submit(self._assignTask, points)
 
     def addRobot(self, name):
         self.robots.append(Robot(self.warehouse.client, name))
@@ -97,22 +107,27 @@ class Executer:
 
     def release(self, num):
         print("Releasing")
+        self.robots[num].makeFree()
         self.freeRobots.release()
 
     def _assignTask(self, task):
+        print(type(task))
         pickup, drop = (task["pickup"]["x"], task["pickup"]["y"]), (
             task["drop"]["x"],
             task["drop"]["y"],
         )
+        print(pickup, drop)
         for i in range(len(self.robots)):
             if not self.robots[i].busy:
                 self.robots[i].makeBusy(task)
-                self.socketio.emit("test", "test")
+                self.mutex.release()
+                self.socketio.emit(
+                    "assignTo", {"uuid": task["uuid"], "robot": self.robots[i].id}
+                )
                 task["status"] = "Computing Path"
                 self.socketio.emit(
                     "updateStatus", {"uuid": task["uuid"], "status": "Computing Path"}
                 )
-                self.socketio.sleep(0)
                 finder = PathFinder(self.warehouse)
                 _, pos = sim.simxGetObjectPosition(
                     self.warehouse.client,
@@ -121,28 +136,60 @@ class Executer:
                     sim.simx_opmode_blocking,
                 )
                 start = self.warehouse.warehouse_to_img(pos[0], pos[1])
-                pickupPath = finder.find(start, pickup)
-                self.socketio.sleep(0)
-                dropPath = finder.find(pickup, drop)
-                # _, img = cv2.imencode(".jpg", finder.visualizePath())
-                # img_bytes = img.tobytes()
-                # self.socketio.emit('path', base64.b64encode(img_bytes))
+                pickupPathImg, pickupPath = finder.find(start, pickup)
+                if len(pickupPath) == 0:
+                    task["status"] = "No route"
+                    self.socketio.emit(
+                        "updateStatus", {"uuid": task["uuid"], "status": task["status"]}
+                    )
+                    self.release(i)
+                    return
+                dropPathImg, dropPath = finder.find(pickup, drop)
+                if len(dropPath) == 0:
+                    task["status"] = "No route"
+                    self.socketio.emit(
+                        "updateStatus", {"uuid": task["uuid"], "status": task["status"]}
+                    )
+                    self.release(i)
+                    return
+                self.socketio.emit(
+                    "path",
+                    {
+                        "uuid": task["uuid"],
+                        "pickup": pickupPathImg,
+                        "drop": dropPathImg,
+                    },
+                )
                 task["status"] = "In Transit"
                 self.socketio.emit(
                     "updateStatus", {"uuid": task["uuid"], "status": "In Transit"}
                 )
-                self.socketio.sleep(2)
                 tracker = PathTracker(
-                    pickupPath, dropPath, 2.8, 5, self.robots[i], self.warehouse, self.socketio
+                    pickupPath,
+                    dropPath,
+                    2.8,
+                    5,
+                    self.robots[i],
+                    self.warehouse,
+                    self.socketio,
                 )
-                self.pool.apply_async(tracker.track, callback=self.release)
-                self.mutex.release()
+                tracker.track()
+                curPos = self.robots[i].getPos()
+                mappedPos = self.warehouse.warehouse_to_img(curPos[0], curPos[1])
+                self.robots[i].task["status"] = "Finished"
+                self.socketio.emit(
+                    "updateStatus",
+                    {"uuid": self.robots[i].task["uuid"], "status": "Finished"},
+                )
+                self.socketio.emit(
+                    "updateRobotPos",
+                    {"id": self.robots[i].id, "x": mappedPos[0], "y": mappedPos[1]},
+                )
+                self.release(i)
                 return
-        print("No free robots")
 
     def finishAll(self):
         self.queue.put(None)
         self.loop.join()
         self.mutex.acquire()
-        self.pool.close()
-        self.pool.join()
+        self.pool.shutdown()
