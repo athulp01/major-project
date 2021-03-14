@@ -5,6 +5,8 @@ class Task {
         this.drop = drop;
         this.package = pkgid;
         this.status = status;
+        this.pickupPath = null;
+        this.dropPath = null;
         console.log(this);
         this.addToTable();
     }

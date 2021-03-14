@@ -33,9 +33,7 @@ class Executer:
         self.app.add_url_rule(
             "/<path:path>", "sendFile", self.sendFile, methods=["GET"]
         )
-        self.app.add_url_rule(
-            "/", "sendHomePage", self.sendHomePage, methods=["GET"]
-        )
+        self.app.add_url_rule("/", "sendHomePage", self.sendHomePage, methods=["GET"])
         self.app.add_url_rule("/getTasks", "sendTasksHTTP", self.sendTasksHTTP)
         self.app.add_url_rule("/getRobotsPos", "sendRobotsPos", self.sendRobotsPos)
 
@@ -73,6 +71,7 @@ class Executer:
     def handleAddTask(self, data):
         data = json.loads(data)
         self.addTask(data)
+        self.socketio.emit("newTask", data)
         self.tasks.append(data)
 
     def handleAddRobot(self):
@@ -121,6 +120,7 @@ class Executer:
             if not self.robots[i].busy:
                 self.robots[i].makeBusy(task)
                 self.mutex.release()
+                task["robot"] = self.robots[i].id
                 self.socketio.emit(
                     "assignTo", {"uuid": task["uuid"], "robot": self.robots[i].id}
                 )
@@ -152,6 +152,8 @@ class Executer:
                     )
                     self.release(i)
                     return
+                task["pickupPath"] = pickupPathImg
+                task["dropPath"] = dropPathImg
                 self.socketio.emit(
                     "path",
                     {

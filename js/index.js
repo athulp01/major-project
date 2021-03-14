@@ -3,6 +3,7 @@ socket.on("updateStatus", updateStatus);
 socket.on("path", updatePath);
 socket.on("UpdateRobotPos", updateRobotPos);
 socket.on("assignTo", assignTo);
+socket.on("newTask", newTask);
 var ctx;
 var canvas;
 var tasks = [];
@@ -165,6 +166,30 @@ function addTask() {
     tasks.push(task);
     cancelCurPoints();
     socket.emit("addTask", JSON.stringify(task));
+}
+
+function newTask(data) {
+    console.log([data, tasks]);
+    var exist = false;
+    tasks.forEach((task) => {
+        if (task["uuid"] == data["uuid"]) {
+            console.log("found");
+            exist = true;
+            return;
+        }
+    });
+    if (exist) {
+        return;
+    }
+    console.log("adding");
+    var task = new Task(
+        data["uuid"],
+        data["pickup"],
+        data["drop"],
+        data["package"]["id"],
+        data["status"]
+    );
+    tasks.push(task);
 }
 
 function updateCurPoint(event) {
