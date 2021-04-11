@@ -1,8 +1,9 @@
 class Robot {
-    constructor(id, x, y) {
+    constructor(id, x, y, angle) {
         this.id = id;
         this.x = x;
         this.y = y;
+        this.angle = angle;
     }
 
     draw(ctx) {

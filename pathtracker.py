@@ -16,7 +16,7 @@ class PathTracker:
         # self.pos = [0,0]
         self.width = width
         self.robot = robot
-        self.velocity = 7
+        self.velocity = 4
         self.reset()
 
     def reset(self):

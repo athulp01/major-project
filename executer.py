@@ -1,19 +1,19 @@
 from concurrent.futures import ThreadPoolExecutor
+import math
+import json
 import queue
 import threading
-import json
 
+from flask import Flask, abort, request
+import flask
 from flask.json import jsonify
-from werkzeug import debug
+from flask_socketio import SocketIO
+
 from pathfinder import PathFinder
 from pathtracker import PathTracker
-from warehouse import Warehouse
 from robot import Robot
-from flask_socketio import SocketIO
 import sim
-
-from flask import Flask, request, abort
-import flask
+from warehouse import Warehouse
 
 
 class Executer:
@@ -54,7 +54,7 @@ class Executer:
         for robot in self.robots:
             curPos = robot.getPos()
             mappedPos = self.warehouse.warehouse_to_img(curPos[0], curPos[1])
-            pos.append({"id": robot.id, "x": mappedPos[0], "y": mappedPos[1]})
+            pos.append({"id": robot.id,  "angle" : robot.getAngle(), "x": mappedPos[0], "y": mappedPos[1]})
         return jsonify(pos)
 
     def sendTasksHTTP(self):
@@ -118,6 +118,7 @@ class Executer:
         print(pickup, drop)
         for i in range(len(self.robots)):
             if not self.robots[i].busy:
+                print("Angle = ", self.robots[i].getAngle())
                 self.robots[i].makeBusy(task)
                 self.mutex.release()
                 task["robot"] = self.robots[i].id
@@ -136,8 +137,12 @@ class Executer:
                     sim.simx_opmode_blocking,
                 )
                 start = self.warehouse.warehouse_to_img(pos[0], pos[1])
-                pickupPathImg, pickupPath = finder.find(start, pickup)
+                pickupPathImg, pickupPath = finder.find(
+                    start, pickup, self.robots[i].getAngle()
+                )
+                print("pick found")
                 if len(pickupPath) == 0:
+                    print("No")
                     task["status"] = "No route"
                     self.socketio.emit(
                         "updateStatus", {"uuid": task["uuid"], "status": task["status"]}
@@ -145,7 +150,9 @@ class Executer:
                     self.release(i)
                     return
                 dropPathImg, dropPath = finder.find(pickup, drop)
+                print("drop found")
                 if len(dropPath) == 0:
+                    print("No")
                     task["status"] = "No route"
                     self.socketio.emit(
                         "updateStatus", {"uuid": task["uuid"], "status": task["status"]}

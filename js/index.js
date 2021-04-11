@@ -83,7 +83,12 @@ function getRobotsPos() {
     axios.get("/getRobotsPos").then((resp) => {
         console.log(resp.data);
         resp.data.forEach((data) => {
-            var robot = new Robot(data["id"], data["x"], data["y"]);
+            var robot = new Robot(
+                data["id"],
+                data["x"],
+                data["y"],
+                data["angle"]
+            );
             console.log(robot);
             robots.push(robot);
             robot.draw(ctx);
@@ -193,19 +198,30 @@ function newTask(data) {
 }
 
 function updateCurPoint(event) {
-    console.log(canvas);
     const rect = canvas.getBoundingClientRect();
     if (curPick == null) {
         curPick = [event.clientX - rect.x, event.clientY - rect.y];
-        document.getElementById("pickx").value = curPick[0];
-        document.getElementById("picky").value = curPick[1];
+        document.getElementById("pickx").value = parseInt(curPick[0]);
+        document.getElementById("picky").value = parseInt(curPick[1]);
         drawCurPoints(ctx);
     } else if (curDrop == null) {
         curDrop = [event.clientX - rect.x, event.clientY - rect.y];
-        document.getElementById("dropx").value = curDrop[0];
-        document.getElementById("dropy").value = curDrop[1];
+        document.getElementById("dropx").value = parseInt(curDrop[0]);
+        document.getElementById("dropy").value = parseInt(curDrop[1]);
         drawCurPoints(ctx);
     }
+}
+
+function updateMap(event) {
+    curPick = [
+        document.getElementById("pickx").value,
+        document.getElementById("picky").value,
+    ];
+    curDrop = [
+        document.getElementById("dropx").value,
+        document.getElementById("dropy").value,
+    ];
+    draw(ctx);
 }
 
 function updatePos() {

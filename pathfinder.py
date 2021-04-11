@@ -3,28 +3,59 @@ from matplotlib import pyplot as plt
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.finder.dijkstra import DijkstraFinder
+from pathfinding.core.diagonal_movement import DiagonalMovement
+import math
 
 
 class PathFinder:
     def __init__(self, warehouse):
         self.warehouse = warehouse
 
-    def find(self, start, end):
+    def buildPerimiter(self, pos, angle, width, img):
+        img = img.copy()
+        angle = -angle
+        img[pos[1] - width : pos[1] + width, pos[0] - width : pos[0] + width] = 0
+        unit_vector = [math.cos(angle), math.sin(angle)]
+        for i in range(2 * width):
+            try:
+                img[
+                    pos[1]
+                    + int(i * unit_vector[1])
+                    - 1 : pos[1]
+                    + int(i * unit_vector[1])
+                    + 1,
+                    pos[0]
+                    + int(i * unit_vector[0])
+                    - 1 : pos[0]
+                    + int(i * unit_vector[0])
+                    + 1,
+                ] = 255
+            except Exception as e:
+                print(str(e))
+                break
+
+        plt.imsave("tmp.bmp", img)
+        return img
+
+    def find(self, start, end, angle=None):
         print(start, end)
         self.img = self.warehouse.getImage()
-        self.imshow(self.img)
         preproc = self.preprocess(self.img)
+        if angle is not None:
+            preproc = self.buildPerimiter(start, angle, 35, preproc)
         self.imshow(preproc)
         # 7.34 and 9.04 are actual dimension in the sim env
         grid = Grid(matrix=preproc)
-        cv.circle(self.img, start, 10, (255,0,0), 3)
         startGrid = grid.node(*start)
-        cv.circle(self.img, end, 10, (0,255,0), 3)
         endGrid = grid.node(*end)
-        finder = AStarFinder()
+        finder = AStarFinder(diagonal_movement=DiagonalMovement)
+        print("Finding")
         path, _ = finder.find_path(startGrid, endGrid, grid)
         if len(path) == 0:
-            return []
+            print("exit")
+            return ([], [])
+        print(path[0])
+        print("found")
         path = path[0::4]
         self.path = [[p[0], p[1]] for p in path]
         self.path = self.smooth(30, 0.6, 40)
@@ -36,7 +67,7 @@ class PathFinder:
     def imshow(self, image):
         print("imshow disabled")
         ##plt.imshow(image)
-        #plt.show()
+        # plt.show()
 
     def visualizePath(self):
         img = self.img
@@ -106,3 +137,14 @@ class PathFinder:
                         count = count + 1
                 j = j + 1
         return edges
+
+
+if __name__ == "__main__":
+    tmp = PathFinder(None)
+    from PIL import Image
+    import numpy as np
+    import cv2
+
+    img = cv2.imread("./images/base.png", cv2.IMREAD_GRAYSCALE)
+    plt.imshow(tmp.buildPerimiter((233, 201), 1, 30, img))
+    plt.show()

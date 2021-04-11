@@ -21,9 +21,6 @@ class Robot:
         err, self.base = sim.simxGetObjectHandle(
             self.client, "body#" + num, sim.simx_opmode_blocking
         )
-        err, self.front = sim.simxGetObjectHandle(
-            self.client, "front#" + num, sim.simx_opmode_blocking
-        )
         self.plot = None
         self.busy = False
 
