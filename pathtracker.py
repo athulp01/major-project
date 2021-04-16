@@ -2,13 +2,15 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import pathfinder
+import sim
 
 
 class PathTracker:
     def __init__(
-        self, pickupPath, dropPath, lookdist, width, robot, warehouse, socketio
+        self, pickupPath, dropPath, lookdist, width, robot, warehouse, socketio, pkg
     ):
         self.lookdist = lookdist
+        self.pkg = pkg
         self.warehouse = warehouse
         self.socketio = socketio
         self.pickupPath = pickupPath
@@ -45,6 +47,20 @@ class PathTracker:
             self.socketio.sleep(0)
 
         self.reset()
+        print("start picking")
+        print(self.robot)
+        err, platform = sim.simxGetObjectHandle(
+            self.warehouse.client,
+            "platform_" + self.robot.id,
+            sim.simx_opmode_blocking,
+        )
+        print(err)
+        err, pos = sim.simxGetObjectPosition(
+            self.warehouse.client, platform, -1, sim.simx_opmode_blocking
+        )
+        print(err)
+        pos[2] = pos[2] + 0.08
+        self.warehouse.movePackage(self.pkg, pos, platform)
 
         while True:
             if (self.pos[0] - self.dropPath[-1][0]) ** 2 + (
@@ -61,6 +77,14 @@ class PathTracker:
             self.pos = self.robot.getPos()[0:2]
             self.angle = self.robot.getAngle()
             self.socketio.sleep(0)
+
+        err, pos = sim.simxGetObjectPosition(
+            self.warehouse.client, platform, -1, sim.simx_opmode_blocking
+        )
+        pos[2] = 0.004
+        pos[0] = pos[0] - 0.2
+        pos[1] = pos[1] - 0.2
+        self.warehouse.movePackage(self.pkg, pos, -1)
 
     def turn(self, curv, trackwidth):
         return [

@@ -41,8 +41,10 @@ class PathFinder:
         print(start, end)
         self.img = self.warehouse.getImage()
         preproc = self.preprocess(self.img)
+        angle = None
         if angle is not None:
             preproc = self.buildPerimiter(start, angle, 35, preproc)
+        plt.imsave("pre.png", preproc)
         self.imshow(preproc)
         # 7.34 and 9.04 are actual dimension in the sim env
         grid = Grid(matrix=preproc)

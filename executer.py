@@ -54,7 +54,14 @@ class Executer:
         for robot in self.robots:
             curPos = robot.getPos()
             mappedPos = self.warehouse.warehouse_to_img(curPos[0], curPos[1])
-            pos.append({"id": robot.id,  "angle" : robot.getAngle(), "x": mappedPos[0], "y": mappedPos[1]})
+            pos.append(
+                {
+                    "id": robot.id,
+                    "angle": robot.getAngle(),
+                    "x": mappedPos[0],
+                    "y": mappedPos[1],
+                }
+            )
         return jsonify(pos)
 
     def sendTasksHTTP(self):
@@ -173,6 +180,7 @@ class Executer:
                 self.socketio.emit(
                     "updateStatus", {"uuid": task["uuid"], "status": "In Transit"}
                 )
+                print(task["package"]["id"])
                 tracker = PathTracker(
                     pickupPath,
                     dropPath,
@@ -181,6 +189,7 @@ class Executer:
                     self.robots[i],
                     self.warehouse,
                     self.socketio,
+                    task["package"]["id"],
                 )
                 tracker.track()
                 curPos = self.robots[i].getPos()

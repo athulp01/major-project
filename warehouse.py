@@ -31,6 +31,16 @@ class Warehouse:
         self.imwidth = None
         self.imheight = None
 
+    def movePackage(self, pkg_name, pos, handle=None):
+        _, pkg = sim.simxGetObjectHandle(
+            self.client, pkg_name, sim.simx_opmode_blocking
+        )
+        sim.simxSetObjectPosition(self.client, pkg, -1, pos, sim.simx_opmode_blocking)
+        if handle:
+            sim.simxSetObjectParent(
+                self.client, pkg, handle, False, sim.simx_opmode_blocking
+            )
+
     def getImage(self):
         err, resol, image = sim.simxGetVisionSensorImage(
             self.client, self.camera, 0, sim.simx_opmode_blocking
