@@ -54,12 +54,12 @@ class PathTracker:
             "platform_" + self.robot.id,
             sim.simx_opmode_blocking,
         )
-        print(err)
         err, pos = sim.simxGetObjectPosition(
             self.warehouse.client, platform, -1, sim.simx_opmode_blocking
         )
-        print(err)
-        pos[2] = pos[2] + 0.08
+        pos[2] = pos[2] + 0.1
+        self.warehouse.movePackage(self.pkg, pos, platform)
+        self.warehouse.movePackage(self.pkg, pos, platform)
         self.warehouse.movePackage(self.pkg, pos, platform)
 
         while True:
@@ -81,9 +81,10 @@ class PathTracker:
         err, pos = sim.simxGetObjectPosition(
             self.warehouse.client, platform, -1, sim.simx_opmode_blocking
         )
-        pos[2] = 0.004
-        pos[0] = pos[0] - 0.2
-        pos[1] = pos[1] - 0.2
+        pos[2] = 0.005
+        pos[0] = pos[0] - 0.3
+        pos[1] = pos[1] - 0.3
+        self.warehouse.movePackage(self.pkg, pos, -1)
         self.warehouse.movePackage(self.pkg, pos, -1)
 
     def turn(self, curv, trackwidth):
